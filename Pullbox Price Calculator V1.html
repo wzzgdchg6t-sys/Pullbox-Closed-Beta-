@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pullbox Metal Takeoff</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --graphite:#24262B;
+    --graphite-2:#2E3138;
+    --paper:#F1EEE6;
+    --paper-2:#E7E2D5;
+    --ink:#1D1D1B;
+    --ink-soft:#57544C;
+    --yellow:#F5B700;
+    --yellow-deep:#C98F00;
+    --teal:#2F6F62;
+    --rule:#C8C2B2;
+    --danger:#B4432B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--graphite);
+    background-image:
+      linear-gradient(var(--graphite-2) 1px, transparent 1px),
+      linear-gradient(90deg, var(--graphite-2) 1px, transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding:32px 16px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:20px;
+    padding-bottom:14px;
+    border-bottom:3px solid var(--yellow);
+  }
+  h1{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:800;
+    font-size:clamp(30px,5vw,46px);
+    letter-spacing:0.5px;
+    color:var(--paper);
+    margin:0;
+    line-height:0.95;
+    text-transform:uppercase;
+  }
+  .subtitle{
+    color:#B7B2A4;
+    font-size:13px;
+    font-family:'IBM Plex Mono', monospace;
+    margin-top:6px;
+    letter-spacing:0.5px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--graphite);
+    background:var(--yellow);
+    padding:5px 10px;
+    border-radius:2px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--paper-2);
+    border-radius:3px;
+    padding:22px 24px;
+    margin-bottom:18px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.28);
+    position:relative;
+  }
+  .card::before{
+    content:'';
+    position:absolute;
+    left:0;top:0;bottom:0;
+    width:6px;
+    background:repeating-linear-gradient(-45deg, var(--yellow), var(--yellow) 6px, var(--ink) 6px, var(--ink) 12px);
+    border-radius:3px 0 0 3px;
+  }
+  .card-inner{padding-left:14px;}
+
+  .card h2{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-size:20px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    margin:0 0 14px;
+    color:var(--ink);
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .card h2 .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    background:var(--ink);
+    color:var(--yellow);
+    padding:2px 8px;
+    border-radius:2px;
+  }
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;}
+  label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  input[type=number]{
+    width:100%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:17px;
+    padding:8px 10px;
+    border:1px solid var(--rule);
+    border-radius:2px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input[type=number]:focus{outline:2px solid var(--yellow-deep);outline-offset:1px;}
+  input[type=text]{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:13.5px;
+    padding:7px 9px;
+    border:1px solid var(--rule);
+    border-radius:2px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input[type=text]:focus{outline:2px solid var(--yellow-deep);outline-offset:1px;}
+
+  .type-toggle{display:flex;gap:10px;flex-wrap:wrap;}
+  .type-toggle label{
+    display:inline-flex;align-items:center;gap:7px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;text-transform:none;letter-spacing:0;
+    color:var(--ink);
+    background:#fff;
+    border:1px solid var(--rule);
+    padding:8px 12px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .type-toggle input[type=radio]{width:auto;accent-color:var(--teal);}
+  .type-toggle label.active{border-color:var(--teal);background:rgba(47,111,98,0.1);}
+
+  .acc-row-actions{display:flex;justify-content:flex-end;margin-top:10px;}
+
+  details{margin-top:16px;}
+  summary{
+    cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--teal);
+    font-weight:600;
+    padding:6px 0;
+  }
+  summary:focus{outline:2px solid var(--yellow-deep);}
+  .adv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:12px;}
+  .adv-grid label{font-size:10px;}
+  .note{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    line-height:1.5;
+    border-top:1px dashed var(--rule);
+    padding-top:10px;
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    font-family:'IBM Plex Mono', monospace;
+    text-transform:uppercase;
+    font-size:10.5px;
+    letter-spacing:0.4px;
+    text-align:left;
+    color:var(--ink-soft);
+    border-bottom:2px solid var(--ink);
+    padding:6px 8px;
+  }
+  td{
+    padding:9px 8px;
+    border-bottom:1px solid var(--rule);
+    font-family:'IBM Plex Mono', monospace;
+    vertical-align:middle;
+  }
+  td.name{font-family:'IBM Plex Sans',sans-serif;font-weight:600;}
+  td.pct{color:var(--teal);font-weight:600;}
+  tr:last-child td{border-bottom:none;}
+  .qty-badge{
+    display:inline-block;
+    background:var(--ink);
+    color:var(--paper);
+    font-size:10.5px;
+    padding:1px 6px;
+    border-radius:2px;
+    margin-left:6px;
+  }
+
+  .stamp-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;}
+  .group-block{margin-bottom:26px;padding-top:18px;border-top:1px dashed var(--rule);}
+  .group-block:first-child{margin-top:0;padding-top:0;border-top:none;}
+  .group-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    color:var(--ink);
+    background:var(--yellow);
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:2px;
+    margin-bottom:12px;
+    font-weight:600;
+  }
+  .stamp{
+    flex:1 1 160px;
+    border:2px solid var(--ink);
+    border-radius:4px;
+    padding:12px 14px;
+    position:relative;
+  }
+  .stamp .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--ink-soft);
+  }
+  .stamp .value{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:700;
+    font-size:30px;
+    line-height:1.1;
+    color:var(--ink);
+  }
+  .stamp.hero{
+    border-color:var(--yellow-deep);
+    background:repeating-linear-gradient(-45deg, rgba(245,183,0,0.12), rgba(245,183,0,0.12) 10px, transparent 10px, transparent 20px);
+  }
+  .stamp.hero .value{color:var(--danger);}
+
+  .diagram-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+  svg{background:#0A0A0A;border:1px solid #000;border-radius:2px;flex:1 1 340px;max-width:100%;}
+  .legend{font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:2;color:var(--ink-soft);flex:1 1 180px;}
+  .legend span.swatch{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:middle;border:1px solid var(--ink);}
+
+  footer{
+    text-align:center;
+    color:#8B8677;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    margin-top:30px;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    .card{animation:rise 0.4s ease both;}
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Pullbox Metal Takeoff</h1>
+      <div class="subtitle">SHEET CUT ESTIMATOR // BODY · BOX END · COVER</div>
+    </div>
+    <div class="tag" id="dateTag">SHOP TRAVELER</div>
+  </header>
+
+  <div class="card">
+    <div class="card-inner">
+      <h2><span class="num">01</span>Pullbox Dimensions</h2>
+      <div class="grid">
+        <div>
+          <label for="W">Width (mm)</label>
+          <input type="number" id="W" value="400" min="0">
+        </div>
+        <div>
+          <label for="H">Height (mm)</label>
+          <input type="number" id="H" value="600" min="0">
+        </div>
+        <div>
+          <label for="D">Depth (mm)</label>
+          <input type="number" id="D" value="300" min="0">
+        </div>
+        <div>
+          <label for="qty">Quantity of boxes</label>
+          <input type="number" id="qty" value="1" min="1" step="1">
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label>Pullbox Type</label>
+        <div class="type-toggle" id="typeToggle">
+          <label id="typeBoltedLbl"><input type="radio" name="pullboxType" id="typeBolted" value="bolted" checked>Bolted</label>
+          <label id="typeSwingLbl"><input type="radio" name="pullboxType" id="typeSwing" value="swing">Swing</label>
+        </div>
+      </div>
+
+      <details>
+        <summary>Advanced — offsets, margins & sheet size</summary>
+        <div class="adv-grid">
+          <div><label for="bodyOffset">Body side offset (mm, ea. side)</label><input type="number" id="bodyOffset" value="20"></div>
+          <div><label for="capOffset">Box end / cover offset (mm, all sides)</label><input type="number" id="capOffset" value="25"></div>
+          <div><label for="swingOffset">Swing type — extra side offset (mm, ea. side)</label><input type="number" id="swingOffset" value="20"></div>
+          <div><label for="sheetW">Sheet length (mm)</label><input type="number" id="sheetW" value="2440"></div>
+          <div><label for="sheetH">Sheet height (mm)</label><input type="number" id="sheetH" value="1220"></div>
+          <div><label for="mTop">Margin — top (mm)</label><input type="number" id="mTop" value="10"></div>
+          <div><label for="mLeft">Margin — left (mm)</label><input type="number" id="mLeft" value="10"></div>
+          <div><label for="mRight">Margin — right (mm)</label><input type="number" id="mRight" value="10"></div>
+          <div><label for="mBottom">Margin — bottom (mm)</label><input type="number" id="mBottom" value="50"></div>
+          <div><label for="gapX">Space between parts — side to side (mm)</label><input type="number" id="gapX" value="15"></div>
+          <div><label for="gapY">Space between parts — top to bottom (mm)</label><input type="number" id="gapY" value="15"></div>
+        </div>
+        <div class="note">
+          <b>Assumed construction:</b> Body = bottom + two side walls developed as one flat piece, running the full Height, with the side-offset added to the two ends of that run: <span id="bodyFormulaNote">(Height + 2×offset) × (Width + 2×Depth)</span>. Box end = top &amp; bottom cap pieces (2 pcs), each the Width×Depth cross-section plus offset on all four sides — unaffected by Pullbox Type. Cover = Width × Height plus offset on all four sides: <span id="coverFormulaNote">(Width + 2×offset) × (Height + 2×offset)</span>. When Pullbox Type is set to <b>Swing</b>, the "Swing type — extra side offset" above is added on top of the normal side offset for the Body and Cover only (box end caps stay the same). Edit the numbers above if your fold pattern differs.
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-inner">
+      <h2><span class="num">02</span>Material Thickness</h2>
+      <div class="grid">
+        <div>
+          <label for="thkBody">Body (mm)</label>
+          <input type="number" id="thkBody" value="1.4" min="0" step="0.1">
+        </div>
+        <div>
+          <label for="thkEndTop">Box end — top (mm)</label>
+          <input type="number" id="thkEndTop" value="2.0" min="0" step="0.1">
+        </div>
+        <div>
+          <label for="thkEndBot">Box end — bottom (mm)</label>
+          <input type="number" id="thkEndBot" value="2.0" min="0" step="0.1">
+        </div>
+        <div>
+          <label for="thkCover">Cover (mm)</label>
+          <input type="number" id="thkCover" value="1.4" min="0" step="0.1">
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px;">
+        Metal price is set per thickness, not here — each thickness gets its own ₱/sheet price field in section <b>04</b> below, next to its sheet layout.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="accessoriesCard" style="display:none;">
+    <div class="card-inner">
+      <h2><span class="num">02b</span>Accessories — Swing Type</h2>
+      <div class="grid" style="max-width:220px;">
+        <div>
+          <label for="accCount">Number of accessories</label>
+          <input type="number" id="accCount" value="2" min="0" step="1">
+        </div>
+      </div>
+      <div style="overflow-x:auto;margin-top:14px;">
+        <table id="accTable">
+          <thead>
+            <tr><th>Accessory</th><th>Price (₱ / unit)</th><th>Qty</th><th>Line total (₱)</th></tr>
+          </thead>
+          <tbody id="accBody"></tbody>
+        </table>
+      </div>
+      <div class="stamp-row" style="margin-top:14px;">
+        <div class="stamp hero"><div class="label">Accessories total (added to metal price)</div><div class="value" id="accTotalValue">₱0.00</div></div>
+      </div>
+      <div class="note">
+        Accessories total = Σ(price × qty across all accessory rows) × 1.3. This is added directly to the estimated price in section <b>05</b>, on top of the metal sheet cost. Applies only when Pullbox Type is set to Swing.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-inner">
+      <h2><span class="num">03</span>Cut Sizes &amp; Sheet Share</h2>
+      <div style="overflow-x:auto;">
+      <table id="partsTable">
+        <thead>
+          <tr><th>Item</th><th>Flat size (mm)</th><th>Thk (mm)</th><th>Qty needed</th><th>Fits / sheet</th><th>Fits / quarter</th><th>% of a quarter-sheet</th><th>Sheets needed (this item)</th></tr>
+        </thead>
+        <tbody id="partsBody"></tbody>
+      </table>
+      </div>
+      <div class="note">
+        <b>Fits / sheet</b> and <b>fits / quarter</b> pack a main grid of that piece, then rotate the leftover pieces 90° to fill whatever strip is left over (right side or bottom) — with <span id="gapNote">15mm side / 15mm top</span> gaps kept between adjacent pieces. This assumes that item is cut on its own, not mixed with other pieces. A shop nesting different parts together on one sheet can usually do even better than the "sheets needed" column below suggests.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-inner">
+      <h2><span class="num">04</span>Order Summary &amp; Sheet Layout — by Thickness</h2>
+      <div class="note" style="margin-top:0;margin-bottom:16px;border-top:none;padding-top:0;">
+        Parts of different thickness can't be sheared from the same stock sheet, so each thickness gets its own order totals, its own metal price, and its own sheet diagram below.
+      </div>
+      <div id="groupsContainer"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-inner">
+      <h2><span class="num">05</span>Price Estimate</h2>
+      <div class="stamp-row">
+        <div class="stamp hero"><div class="label">Estimated price</div><div class="value" id="priceValue">₱0.00</div></div>
+      </div>
+      <div class="note">
+        Each thickness is priced separately, then added together: for a given thickness, <b>price = metal price for that thickness (₱/sheet) × Σ(1 / fits-per-sheet) across all parts of that thickness × 1.3</b>. Each part's "fits per sheet" comes from the Cut Sizes table above — this treats each part as if cut from its own sheet, so it does not assume different parts are nested together on one sheet. Set each thickness's price in section <b>04</b>. When Pullbox Type is Swing, the accessories total from section <b>02b</b> (Σ price × qty × 1.3) is added on top of the metal total shown here.
+      </div>
+    </div>
+  </div>
+
+  <footer>2440 × 1220 mm base sheet — one issuance = ¼ sheet (25%)</footer>
+</div>
+
+<script>
+function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
+function fmt(n, d){ return n.toLocaleString(undefined,{minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+const PART_COLORS = {
+  'Body (3-face wrap)': '#4FA88C',
+  'Cover': '#6FA8DC',
+  'Box End — top': '#C97FD9',
+  'Box End — bottom': '#E2A33A'
+};
+
+// Metal price (₱/sheet) per thickness, keyed the same way as the thickness
+// groups below. Persists across recalcs so typed values survive as other
+// inputs change; new thicknesses default to 300 until edited.
+const thicknessPriceStore = {};
+// Latest Σ(1/fits-per-sheet) per thickness key, refreshed each recalc(),
+// used by updatePricing() to recompute totals without rebuilding the DOM.
+let lastGroupFractionSum = {};
+
+// Accessory rows (Swing type only). Persists by row index across
+// recalcs/count changes so typed values survive; rows 0 & 1 default to the
+// two common swing accessories.
+const accessoryStore = {
+  0: { name: 'Clip-on Hinge', price: 0, qty: 1 },
+  1: { name: 'Foursquare Lock', price: 0, qty: 1 }
+};
+
+function getPullboxType(){
+  return document.getElementById('typeSwing').checked ? 'swing' : 'bolted';
+}
+
+function buildAccessoryRows(){
+  const count = Math.max(0, Math.round(num('accCount')));
+  const tbody = document.getElementById('accBody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  for(let i=0;i<count;i++){
+    if(!accessoryStore[i]) accessoryStore[i] = { name:'', price:0, qty:1 };
+    const row = accessoryStore[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" class="accName" data-idx="${i}" value="${(row.name||'').replace(/"/g,'&quot;')}" placeholder="Accessory name"></td>
+      <td><input type="number" class="accPrice" data-idx="${i}" value="${row.price}" min="0" step="0.01"></td>
+      <td><input type="number" class="accQty" data-idx="${i}" value="${row.qty}" min="0" step="1"></td>
+      <td class="accLineTotal" data-idx="${i}">₱0.00</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('.accName, .accPrice, .accQty').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      const idx = el.dataset.idx;
+      if(!accessoryStore[idx]) accessoryStore[idx] = { name:'', price:0, qty:1 };
+      if(el.classList.contains('accName')) accessoryStore[idx].name = el.value;
+      if(el.classList.contains('accPrice')) accessoryStore[idx].price = parseFloat(el.value) || 0;
+      if(el.classList.contains('accQty')) accessoryStore[idx].qty = parseFloat(el.value) || 0;
+      updateAccessoriesTotal();
+    });
+  });
+  updateAccessoriesTotal();
+}
+
+// Σ(price × qty) × 1.3 across visible accessory rows. Also refreshes each
+// row's line-total cell as a side effect.
+function getAccessoriesTotal(){
+  const count = Math.max(0, Math.round(num('accCount')));
+  let sum = 0;
+  for(let i=0;i<count;i++){
+    const row = accessoryStore[i];
+    if(!row) continue;
+    const lineTotal = (row.price||0) * (row.qty||0);
+    sum += lineTotal;
+    const cell = document.querySelector(`.accLineTotal[data-idx="${i}"]`);
+    if(cell) cell.textContent = '₱' + fmt(lineTotal, 2);
+  }
+  return sum * 1.3;
+}
+
+function updateAccessoriesTotal(){
+  const total = getAccessoriesTotal();
+  const el = document.getElementById('accTotalValue');
+  if(el) el.textContent = '₱' + fmt(total, 2);
+  updatePricing();
+}
+
+function updatePricing(){
+  let grandTotal = 0;
+  Object.keys(lastGroupFractionSum).forEach(key=>{
+    const input = document.getElementById('price_' + key);
+    const price = input ? (parseFloat(input.value) || 0) : (thicknessPriceStore[key] ?? 300);
+    thicknessPriceStore[key] = price;
+    const groupPrice = price * lastGroupFractionSum[key] * 1.3;
+    grandTotal += groupPrice;
+    const stamp = document.getElementById('groupPrice_' + key);
+    if(stamp) stamp.textContent = '₱' + fmt(groupPrice, 2);
+  });
+  if(getPullboxType() === 'swing'){
+    grandTotal += getAccessoriesTotal();
+  }
+  document.getElementById('priceValue').textContent = '₱' + fmt(grandTotal, 2);
+}
+
+// Shelf packer: places pieces left-to-right, wrapping to a new row when a piece
+// doesn't fit the remaining width. Rows are shared across part types, so a shorter
+// part can sit beside a taller one on the same row instead of being pushed below it.
+function packShelf(fieldW, fieldH, gapX, gapY, items){
+  const rects = [];
+  let x = 0, y = 0, rowH = 0;
+
+  items.forEach(p=>{
+    if(p.w > fieldW || p.h > fieldH) return; // piece too large for the field entirely
+    let remaining = p.neededQty;
+    while(remaining > 0){
+      if(x > 0 && x + p.w > fieldW){
+        y += rowH + gapY;
+        x = 0;
+        rowH = 0;
+      }
+      if(y + p.h > fieldH) break; // out of vertical room — remainder would need another sheet
+      rects.push({x, y, w:p.w, h:p.h, name:p.name});
+      x += p.w + gapX;
+      rowH = Math.max(rowH, p.h);
+      remaining--;
+    }
+  });
+  return rects;
+}
+
+function recalc(){
+  const W = num('W'), H = num('H'), D = num('D'), qty = Math.max(1, num('qty'));
+  const bodyOffset = num('bodyOffset'), capOffset = num('capOffset');
+  const swingOffset = num('swingOffset');
+  const pullboxType = getPullboxType();
+  const isSwing = pullboxType === 'swing';
+  const bodyOffsetEff = bodyOffset + (isSwing ? swingOffset : 0);
+  const coverOffsetEff = capOffset + (isSwing ? swingOffset : 0);
+  const sheetW = num('sheetW'), sheetH = num('sheetH');
+  const mTop = num('mTop'), mLeft = num('mLeft'), mRight = num('mRight'), mBottom = num('mBottom');
+  const partGapX = num('gapX'), partGapY = num('gapY');
+
+  const accessoriesCard = document.getElementById('accessoriesCard');
+  if(accessoriesCard) accessoriesCard.style.display = isSwing ? '' : 'none';
+  document.getElementById('typeBoltedLbl').classList.toggle('active', !isSwing);
+  document.getElementById('typeSwingLbl').classList.toggle('active', isSwing);
+  if(isSwing) buildAccessoryRows();
+
+  document.getElementById('bodyFormulaNote').textContent =
+    isSwing ? `(Height + 2×(${bodyOffset}+${swingOffset})) × (Width + 2×Depth)` : `(Height + 2×${bodyOffset}) × (Width + 2×Depth)`;
+  document.getElementById('coverFormulaNote').textContent =
+    isSwing ? `(Width + 2×(${capOffset}+${swingOffset})) × (Height + 2×(${capOffset}+${swingOffset}))` : `(Width + 2×${capOffset}) × (Height + 2×${capOffset})`;
+
+  const usableW = Math.max(0, sheetW - mLeft - mRight);
+  const usableH = Math.max(0, sheetH - mTop - mBottom);
+  const usableArea = usableW * usableH;
+  const quarterArea = usableArea / 4;
+  const quarterW = usableW / 4, quarterH = usableH;
+
+  function fitCount(fieldW, fieldH, pieceW, pieceH){
+    if(pieceW <= 0 || pieceH <= 0) return 0;
+
+    const along = (field, gap, size) => Math.max(0, Math.floor((field + gap) / (size + gap)));
+    const span = (n, gap, size) => n>0 ? n*size + (n-1)*gap : 0;
+
+    // Fill a main grid with piece at w×h, then use whatever strip is left over
+    // (down the right side, or along the bottom) to pack more pieces rotated 90°.
+    function strategy(w, h){
+      const nCols = along(fieldW, partGapX, w);
+      const nRows = along(fieldH, partGapY, h);
+      const mainCount = nCols * nRows;
+      const usedW = span(nCols, partGapX, w);
+      const usedH = span(nRows, partGapY, h);
+
+      const leftoverW = fieldW - usedW - (nCols>0 ? partGapX : 0);
+      let stripRight = 0;
+      if(leftoverW > 0){
+        const nc = along(leftoverW, partGapX, h); // rotated piece laid on its side
+        const nr = along(fieldH, partGapY, w);
+        stripRight = nc * nr;
+      }
+
+      const leftoverH = fieldH - usedH - (nRows>0 ? partGapY : 0);
+      let stripBottom = 0;
+      if(leftoverH > 0){
+        const nc = along(fieldW, partGapX, h);
+        const nr = along(leftoverH, partGapY, w);
+        stripBottom = nc * nr;
+      }
+
+      return mainCount + Math.max(stripRight, stripBottom);
+    }
+
+    // Try piece as-drawn as the primary orientation, and rotated as the primary
+    // orientation — each backfills its leftover strip with the other rotation.
+    return Math.max(strategy(pieceW, pieceH), strategy(pieceH, pieceW));
+  }
+
+  // Flat pattern sizes (thickness in mm, read live so per-part overrides apply)
+  const body   = { name:'Body (3-face wrap)', w: H + 2*bodyOffsetEff, h: W + 2*D, pieces: 1, thk: num('thkBody') };
+  const capTop = { name:'Box End — top',       w: W + 2*capOffset, h: D + 2*capOffset, pieces: 1, thk: num('thkEndTop') };
+  const capBot = { name:'Box End — bottom',    w: W + 2*capOffset, h: D + 2*capOffset, pieces: 1, thk: num('thkEndBot') };
+  const cover  = { name:'Cover',               w: W + 2*coverOffsetEff, h: H + 2*coverOffsetEff, pieces: 1, thk: num('thkCover') };
+
+  const parts = [body, capTop, capBot, cover];
+
+  let tbody = document.getElementById('partsBody');
+  tbody.innerHTML = '';
+  let totalAreaAllQty = 0;
+  const groupFractionSum = {}; // key (thickness) -> Σ(1 / fits-per-sheet) for parts of that thickness
+
+  parts.forEach(p=>{
+    const areaPc = p.w * p.h; // mm^2 per single piece
+    const pctQuarter = quarterArea > 0 ? (areaPc / quarterArea) * 100 : 0;
+    const neededQty = p.pieces * qty;
+    totalAreaAllQty += areaPc * neededQty;
+
+    const perSheet = fitCount(usableW, usableH, p.w, p.h);
+    const perQuarter = fitCount(quarterW, quarterH, p.w, p.h);
+    const sheetsForItem = perSheet > 0 ? Math.ceil(neededQty / perSheet) : '—';
+    const thkKey = (Math.round(p.thk * 100) / 100).toFixed(2);
+    if(!groupFractionSum[thkKey]) groupFractionSum[thkKey] = 0;
+    if(perSheet > 0) groupFractionSum[thkKey] += 1 / perSheet;
+    document.getElementById('gapNote').textContent = partGapX + 'mm side / ' + partGapY + 'mm top';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="name">${p.name}</td>
+      <td>${fmt(p.w,0)} × ${fmt(p.h,0)}</td>
+      <td>${fmt(p.thk,1)}</td>
+      <td>${neededQty}</td>
+      <td>${perSheet}</td>
+      <td>${perQuarter}</td>
+      <td class="pct">${fmt(pctQuarter,2)}%</td>
+      <td>${sheetsForItem}</td>
+    `;
+    tbody.appendChild(tr);
+
+    p.areaTotal = areaPc * neededQty;
+    p.neededQty = neededQty;
+  });
+
+  lastGroupFractionSum = groupFractionSum;
+
+  // group parts by thickness (rounded to avoid float-equality issues)
+  const groups = {};
+  parts.forEach(p=>{
+    const key = (Math.round(p.thk * 100) / 100).toFixed(2);
+    if(!groups[key]) groups[key] = { thk: p.thk, parts: [] };
+    groups[key].parts.push(p);
+  });
+  const groupKeys = Object.keys(groups).sort((a,b)=> parseFloat(a)-parseFloat(b));
+
+  const container = document.getElementById('groupsContainer');
+  container.innerHTML = '';
+
+  groupKeys.forEach((key, gi)=>{
+    const g = groups[key];
+    const gArea = g.parts.reduce((s,p)=>s+p.areaTotal, 0);
+    const gExactQuarters = quarterArea > 0 ? gArea / quarterArea : 0;
+    const gRoundQuarters = Math.ceil(gExactQuarters - 1e-9);
+    const gExactSheets = gExactQuarters / 4;
+    const gRoundSheets = Math.ceil(gExactSheets - 1e-9);
+    const gPctUsed = usableArea > 0 ? (gArea / usableArea) * 100 : 0;
+    const names = g.parts.map(p=>p.name.replace('Box End — ','End-')).join(', ');
+    const svgId = 'sheetSvg_' + gi;
+
+    const block = document.createElement('div');
+    block.className = 'group-block';
+    block.innerHTML = `
+      <div class="group-title">${fmt(g.thk,1)}mm — ${names}</div>
+      <div class="grid" style="max-width:260px;margin-bottom:14px;">
+        <div>
+          <label for="price_${key}">Metal price — ${fmt(g.thk,1)}mm (₱ / sheet)</label>
+          <input type="number" class="thkPriceInput" id="price_${key}" min="0" step="0.01" value="${thicknessPriceStore[key] ?? 300}">
+        </div>
+      </div>
+      <div class="stamp-row">
+        <div class="stamp"><div class="label">Total area needed</div><div class="value">${fmt(gArea/1e6,3)} m²</div></div>
+        <div class="stamp"><div class="label">Exact quarter-sheets</div><div class="value">${fmt(gExactQuarters,2)}</div></div>
+        <div class="stamp"><div class="label">% of usable sheet used</div><div class="value">${fmt(gPctUsed,2)}%</div></div>
+        <div class="stamp hero"><div class="label">Order — quarter-sheets (rounded up)</div><div class="value">${gRoundQuarters}</div></div>
+        <div class="stamp hero"><div class="label">Order — full sheets (rounded up)</div><div class="value">${gRoundSheets}</div></div>
+        <div class="stamp hero"><div class="label">Price — this thickness</div><div class="value" id="groupPrice_${key}">₱0.00</div></div>
+      </div>
+      <div class="diagram-wrap" style="margin-top:16px;">
+        <svg id="${svgId}" viewBox="0 0 440 232" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="legend">
+          ${g.parts.map(p=>`<div><span class="swatch" style="background:${PART_COLORS[p.name]};"></span>${p.name} (${p.neededQty} pcs)</div>`).join('')}
+          <div style="margin-top:8px;"><span class="swatch" style="background:#F5B700;"></span>Issuance divider (dashed)</div>
+          <div><span class="swatch" style="background:#8B8677;"></span>Centerline (dash-dot)</div>
+          <div><span class="swatch" style="background:#E23D28;"></span>Bottom margin line</div>
+          <div style="margin-top:8px;">Each column = one metal issuance (25% of sheet). Layout shown is one representative sheet — order may need more.</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(block);
+
+    const rects = packShelf(usableW, usableH, partGapX, partGapY, g.parts);
+    drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects);
+  });
+
+  // wire up the freshly-rendered per-thickness price inputs, then compute totals
+  container.querySelectorAll('.thkPriceInput').forEach(el=>{
+    el.addEventListener('input', updatePricing);
+  });
+  updatePricing();
+}
+
+function drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects){
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  const pad = 14;
+  const vbW = 440, vbH = 232;
+  const availW = vbW - pad*2, availH = vbH - pad*2;
+  const scale = Math.min(availW / sheetW, availH / sheetH);
+  const drawW = sheetW*scale, drawH = sheetH*scale;
+  const ox = (vbW - drawW)/2, oy = (vbH - drawH)/2;
+
+  const usX = ox + mLeft*scale;
+  const usY = oy + mTop*scale;
+  const usW = (sheetW - mLeft - mRight)*scale;
+  const usH = (sheetH - mTop - mBottom)*scale;
+  const usBottom = usY + usH;
+  const cy = usY + usH/2;
+
+  const YELLOW = '#F5B700';
+  const GRAY = '#8B8677';
+  const RED = '#E23D28';
+
+  let svgContent = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0A0A0A"></rect>`;
+
+  // draw the actual packed pieces: colored fill, border, and a label if there's room
+  rects.forEach(r=>{
+    const rx = usX + r.x*scale, ry = usY + r.y*scale;
+    const rw = r.w*scale, rh = r.h*scale;
+    const color = PART_COLORS[r.name] || '#CCCCCC';
+    svgContent += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${color}" fill-opacity="0.28" stroke="${color}" stroke-width="1"><title>${r.name} — ${fmt(r.w,0)}×${fmt(r.h,0)}mm</title></rect>`;
+    if(rw > 26 && rh > 12){
+      const label = r.name.replace('Box End — ','End-').replace(' (3-face wrap)','');
+      const fontSize = Math.min(8, rh*0.4);
+      svgContent += `<text x="${rx+rw/2}" y="${ry+rh/2+fontSize*0.35}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${fontSize}" fill="${color}">${label}</text>`;
+    }
+  });
+
+  const cols = 4;
+  const qW = usW/cols;
+
+  // outer sheet border (double thin line, CAD style)
+  svgContent += `<rect x="${ox}" y="${oy}" width="${drawW}" height="${drawH}" fill="none" stroke="${YELLOW}" stroke-width="1"></rect>`;
+  svgContent += `<rect x="${ox+2.5}" y="${oy+2.5}" width="${drawW-5}" height="${drawH-5}" fill="none" stroke="${YELLOW}" stroke-width="0.6"></rect>`;
+
+  // 3 dashed vertical dividers splitting the usable field into 4 issuance columns
+  for(let c=1; c<cols; c++){
+    const x = usX + c*qW;
+    svgContent += `<line x1="${x}" y1="${usY}" x2="${x}" y2="${usBottom}" stroke="${YELLOW}" stroke-width="0.8" stroke-dasharray="7,4"></line>`;
+  }
+
+  // dash-dot centerline running the width of the usable field
+  svgContent += `<line x1="${usX}" y1="${cy}" x2="${usX+usW}" y2="${cy}" stroke="${GRAY}" stroke-width="0.7" stroke-dasharray="10,3,2,3"></line>`;
+
+  // small tick crosses at each column boundary (including outer edges) along the centerline
+  const tick = 5;
+  for(let c=0; c<=cols; c++){
+    const x = usX + c*qW;
+    svgContent += `<line x1="${x}" y1="${cy-tick}" x2="${x}" y2="${cy+tick}" stroke="${GRAY}" stroke-width="0.7"></line>`;
+  }
+
+  // red dashed line marking the bottom margin boundary
+  svgContent += `<line x1="${ox}" y1="${usBottom}" x2="${ox+drawW}" y2="${usBottom}" stroke="${RED}" stroke-width="1" stroke-dasharray="6,4"></line>`;
+
+  svgContent += `<text x="${ox+4}" y="${oy-6 < 8 ? oy+14 : oy-6}" font-family="IBM Plex Mono, monospace" font-size="9" fill="${GRAY}">${sheetW}×${sheetH} mm</text>`;
+  svgContent += `<text x="${ox+drawW-4}" y="${oy+drawH+14 > vbH-2 ? oy+drawH-6 : oy+drawH+14}" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8" fill="${RED}">${mBottom}mm bottom margin</text>`;
+
+  svg.innerHTML = svgContent;
+}
+
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input', recalc));
+recalc();
+</script>
+</body>
+</html>
