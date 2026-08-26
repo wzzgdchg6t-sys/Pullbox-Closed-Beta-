@@ -1,0 +1,23 @@
+{
+  "name": "Pullbox Price Calculator",
+  "short_name": "Pullbox Calculator",
+  "description": "Offline pullbox material, sheet utilization, and price calculator.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#24262B",
+  "theme_color": "#24262B",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -4,8 +4,12 @@
 <meta charset="UTF-8">
 <title>Pullbox Price Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#24262B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pullbox Calculator">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root{
     --graphite:#24262B;
@@ -29,7 +33,7 @@
       linear-gradient(90deg, var(--graphite-2) 1px, transparent 1px);
     background-size:28px 28px;
     color:var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
+    font-family:Arial, Helvetica, sans-serif;
     padding:32px 16px 80px;
     min-height:100vh;
   }
@@ -44,7 +48,7 @@
     border-bottom:3px solid var(--yellow);
   }
   h1{
-    font-family:'Big Shoulders Display', sans-serif;
+    font-family:Impact, 'Arial Narrow', Arial, sans-serif;
     font-weight:800;
     font-size:clamp(30px,5vw,46px);
     letter-spacing:0.5px;
@@ -56,12 +60,12 @@
   .subtitle{
     color:#B7B2A4;
     font-size:13px;
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     margin-top:6px;
     letter-spacing:0.5px;
   }
   .tag{
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     font-size:11px;
     color:var(--graphite);
     background:var(--yellow);
@@ -91,7 +95,7 @@
   .card-inner{padding-left:14px;}
 
   .card h2{
-    font-family:'Big Shoulders Display', sans-serif;
+    font-family:Impact, 'Arial Narrow', Arial, sans-serif;
     font-size:20px;
     text-transform:uppercase;
     letter-spacing:0.5px;
@@ -113,7 +117,7 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;}
   label{
     display:block;
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     font-size:11px;
     text-transform:uppercase;
     letter-spacing:0.6px;
@@ -122,7 +126,7 @@
   }
   input[type=number]{
     width:100%;
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     font-size:17px;
     padding:8px 10px;
     border:1px solid var(--rule);
@@ -132,7 +136,7 @@
   }
   input[type=number]:focus{outline:2px solid var(--yellow-deep);outline-offset:1px;}
   input[type=text]{
-    font-family:'IBM Plex Sans', sans-serif;
+    font-family:Arial, Helvetica, sans-serif;
     font-size:13.5px;
     padding:7px 9px;
     border:1px solid var(--rule);
@@ -145,7 +149,7 @@
   .type-toggle{display:flex;gap:10px;flex-wrap:wrap;}
   .type-toggle label{
     display:inline-flex;align-items:center;gap:7px;
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     font-size:12.5px;text-transform:none;letter-spacing:0;
     color:var(--ink);
     background:#fff;
@@ -162,7 +166,7 @@
   details{margin-top:16px;}
   summary{
     cursor:pointer;
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     font-size:12px;
     text-transform:uppercase;
     letter-spacing:0.6px;
@@ -184,7 +188,7 @@
 
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   th{
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     text-transform:uppercase;
     font-size:10.5px;
     letter-spacing:0.4px;
@@ -196,7 +200,7 @@
   td{
     padding:9px 8px;
     border-bottom:1px solid var(--rule);
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     vertical-align:middle;
   }
   td.name{font-family:'IBM Plex Sans',sans-serif;font-weight:600;}
@@ -216,7 +220,7 @@
   .group-block{margin-bottom:26px;padding-top:18px;border-top:1px dashed var(--rule);}
   .group-block:first-child{margin-top:0;padding-top:0;border-top:none;}
   .group-title{
-    font-family:'IBM Plex Mono', monospace;
+    font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
     font-size:12.5px;
     text-transform:uppercase;
     letter-spacing:0.5px;
@@ -298,7 +302,7 @@
   <div class="card" id="comingSoonCard" style="display:none;">
     <div class="card-inner">
       <h2><span class="num">—</span>NEMA 3R</h2>
-      <div style="padding:24px 0;text-align:center;font-family:'IBM Plex Mono', monospace;">
+      <div style="padding:24px 0;text-align:center;font-family:'SFMono-Regular', Consolas, 'Liberation Mono', monospace;">
         <div style="font-size:20px;letter-spacing:1px;color:var(--ink);">COMING SOON</div>
         <div style="margin-top:8px;color:var(--rule);font-size:13px;">NEMA 3R offsets aren't set up yet. Switch back to NEMA 1 to keep working.</div>
       </div>
@@ -878,6 +882,12 @@ function drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects){
   svgContent += `<text x="${ox+drawW-4}" y="${oy+drawH+14 > vbH-2 ? oy+drawH-6 : oy+drawH+14}" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="8" fill="${RED}">${mBottom}mm bottom margin</text>`;
 
   svg.innerHTML = svgContent;
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
 }
 
 document.querySelectorAll('input').forEach(el=>el.addEventListener('input', recalc));
