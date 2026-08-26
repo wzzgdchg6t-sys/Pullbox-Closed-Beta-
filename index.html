@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pullbox Metal Takeoff</title>
+<title>Pullbox Price Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -279,12 +279,33 @@
 
   <header>
     <div>
-      <h1>Pullbox Metal Takeoff</h1>
-      <div class="subtitle">SHEET CUT ESTIMATOR // BODY · BOX END · COVER</div>
+      <h1>Pullbox Price Calculator</h1>
+      <div class="subtitle">by RYG</div>
     </div>
-    <div class="tag" id="dateTag">SHOP TRAVELER</div>
+    <div class="tag" id="dateTag">Prices are for budgetary purposes only.</div>
   </header>
 
+  <div class="card">
+    <div class="card-inner">
+      <h2><span class="num">00</span>Enclosure Rating</h2>
+      <div class="type-toggle" id="nemaToggle">
+        <label id="nema1Lbl"><input type="radio" name="nemaType" id="nema1" value="nema1" checked>NEMA 1</label>
+        <label id="nema3rLbl"><input type="radio" name="nemaType" id="nema3r" value="nema3r">NEMA 3R</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="comingSoonCard" style="display:none;">
+    <div class="card-inner">
+      <h2><span class="num">—</span>NEMA 3R</h2>
+      <div style="padding:24px 0;text-align:center;font-family:'IBM Plex Mono', monospace;">
+        <div style="font-size:20px;letter-spacing:1px;color:var(--ink);">COMING SOON</div>
+        <div style="margin-top:8px;color:var(--rule);font-size:13px;">NEMA 3R offsets aren't set up yet. Switch back to NEMA 1 to keep working.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainSections">
   <div class="card">
     <div class="card-inner">
       <h2><span class="num">01</span>Pullbox Dimensions</h2>
@@ -316,7 +337,7 @@
       </div>
 
       <details>
-        <summary>Advanced — offsets, margins & sheet size</summary>
+        <summary>Advanced — offsets, margins &amp; sheet size (NEMA 1)</summary>
         <div class="adv-grid">
           <div><label for="bodyOffset">Body side offset (mm, ea. side)</label><input type="number" id="bodyOffset" value="20"></div>
           <div><label for="capOffset">Box end / cover offset (mm, all sides)</label><input type="number" id="capOffset" value="25"></div>
@@ -330,8 +351,8 @@
           <div><label for="gapX">Space between parts — side to side (mm)</label><input type="number" id="gapX" value="15"></div>
           <div><label for="gapY">Space between parts — top to bottom (mm)</label><input type="number" id="gapY" value="15"></div>
         </div>
-        <div class="note">
-          <b>Assumed construction:</b> Body = bottom + two side walls developed as one flat piece, running the full Height, with the side-offset added to the two ends of that run: <span id="bodyFormulaNote">(Height + 2×offset) × (Width + 2×Depth)</span>. Box end = top &amp; bottom cap pieces (2 pcs), each the Width×Depth cross-section plus offset on all four sides — unaffected by Pullbox Type. Cover = Width × Height plus offset on all four sides: <span id="coverFormulaNote">(Width + 2×offset) × (Height + 2×offset)</span>. When Pullbox Type is set to <b>Swing</b>, the "Swing type — extra side offset" above is added on top of the normal side offset for the Body and Cover only (box end caps stay the same). Edit the numbers above if your fold pattern differs.
+        <div class="note" style="display:none;">
+          <b>Assumed construction:</b> Body = bottom + two side walls developed as one flat piece, running the full Height, with the side-offset added to the two ends of the Width+2×Depth run: <span id="bodyFormulaNote">Height × (Width + 2×Depth + 2×offset)</span>. Box end = top &amp; bottom cap pieces (2 pcs), each the Width×Depth cross-section plus offset on all four sides — unaffected by Pullbox Type. Cover = Width × Height plus offset on all four sides: <span id="coverFormulaNote">(Width + 2×offset) × (Height + 2×offset)</span>. When Pullbox Type is set to <b>Swing</b>, the "Swing type — extra side offset" above is added on top of the normal side offset for the Body and Cover only (box end caps stay the same). If a part is too large to fit the sheet in either orientation, it's automatically split down the middle into two sections, each with a 20mm splice offset added to the freshly-cut edge for lapping the two halves back together. Edit the numbers above if your fold pattern differs.
         </div>
       </details>
     </div>
@@ -423,10 +444,11 @@
       <div class="stamp-row">
         <div class="stamp hero"><div class="label">Estimated price</div><div class="value" id="priceValue">₱0.00</div></div>
       </div>
-      <div class="note">
+      <div class="note" style="display:none;">
         Each thickness is priced separately, then added together: for a given thickness, <b>price = metal price for that thickness (₱/sheet) × Σ(1 / fits-per-sheet) across all parts of that thickness × 1.3</b>. Each part's "fits per sheet" comes from the Cut Sizes table above — this treats each part as if cut from its own sheet, so it does not assume different parts are nested together on one sheet. Set each thickness's price in section <b>04</b>. When Pullbox Type is Swing, the accessories total from section <b>02b</b> (Σ price × qty × 1.3) is added on top of the metal total shown here.
       </div>
     </div>
+  </div>
   </div>
 
   <footer>2440 × 1220 mm base sheet — one issuance = ¼ sheet (25%)</footer>
@@ -461,6 +483,19 @@ const accessoryStore = {
 
 function getPullboxType(){
   return document.getElementById('typeSwing').checked ? 'swing' : 'bolted';
+}
+
+function getNemaType(){
+  return document.getElementById('nema3r').checked ? 'nema3r' : 'nema1';
+}
+
+function updateNemaView(){
+  const is3r = getNemaType() === 'nema3r';
+  document.getElementById('nema1Lbl').classList.toggle('active', !is3r);
+  document.getElementById('nema3rLbl').classList.toggle('active', is3r);
+  document.getElementById('mainSections').style.display = is3r ? 'none' : '';
+  document.getElementById('comingSoonCard').style.display = is3r ? '' : 'none';
+  return is3r;
 }
 
 function buildAccessoryRows(){
@@ -541,18 +576,25 @@ function packShelf(fieldW, fieldH, gapX, gapY, items){
   let x = 0, y = 0, rowH = 0;
 
   items.forEach(p=>{
-    if(p.w > fieldW || p.h > fieldH) return; // piece too large for the field entirely
-    let remaining = p.neededQty;
+    // Use whichever orientation actually fits the field — fitCount (used for
+    // the "fits per sheet" number) already tries both orientations, so the
+    // diagram needs to match or it can end up blank even when parts do fit.
+    let pw = p.w, ph = p.h;
+    if((pw > fieldW || ph > fieldH) && ph <= fieldW && pw <= fieldH){
+      pw = p.h; ph = p.w;
+    }
+    if(pw > fieldW || ph > fieldH) return; // genuinely too large for the field, even rotated
+    let remaining = p.diagramQty ?? p.neededQty;
     while(remaining > 0){
-      if(x > 0 && x + p.w > fieldW){
+      if(x > 0 && x + pw > fieldW){
         y += rowH + gapY;
         x = 0;
         rowH = 0;
       }
-      if(y + p.h > fieldH) break; // out of vertical room — remainder would need another sheet
-      rects.push({x, y, w:p.w, h:p.h, name:p.name});
-      x += p.w + gapX;
-      rowH = Math.max(rowH, p.h);
+      if(y + ph > fieldH) break; // out of vertical room — remainder would need another sheet
+      rects.push({x, y, w:pw, h:ph, name:p.name, baseName:p.baseName || p.name});
+      x += pw + gapX;
+      rowH = Math.max(rowH, ph);
       remaining--;
     }
   });
@@ -560,6 +602,8 @@ function packShelf(fieldW, fieldH, gapX, gapY, items){
 }
 
 function recalc(){
+  if(updateNemaView()) return; // NEMA 3R not built yet — coming soon panel is shown instead
+
   const W = num('W'), H = num('H'), D = num('D'), qty = Math.max(1, num('qty'));
   const bodyOffset = num('bodyOffset'), capOffset = num('capOffset');
   const swingOffset = num('swingOffset');
@@ -578,7 +622,7 @@ function recalc(){
   if(isSwing) buildAccessoryRows();
 
   document.getElementById('bodyFormulaNote').textContent =
-    isSwing ? `(Height + 2×(${bodyOffset}+${swingOffset})) × (Width + 2×Depth)` : `(Height + 2×${bodyOffset}) × (Width + 2×Depth)`;
+    isSwing ? `Height × (Width + 2×Depth + 2×(${bodyOffset}+${swingOffset}))` : `Height × (Width + 2×Depth + 2×${bodyOffset})`;
   document.getElementById('coverFormulaNote').textContent =
     isSwing ? `(Width + 2×(${capOffset}+${swingOffset})) × (Height + 2×(${capOffset}+${swingOffset}))` : `(Width + 2×${capOffset}) × (Height + 2×${capOffset})`;
 
@@ -628,12 +672,33 @@ function recalc(){
   }
 
   // Flat pattern sizes (thickness in mm, read live so per-part overrides apply)
-  const body   = { name:'Body (3-face wrap)', w: H + 2*bodyOffsetEff, h: W + 2*D, pieces: 1, thk: num('thkBody') };
+  const body   = { name:'Body (3-face wrap)', w: H, h: W + 2*D + 2*bodyOffsetEff, pieces: 1, thk: num('thkBody') };
   const capTop = { name:'Box End — top',       w: W + 2*capOffset, h: D + 2*capOffset, pieces: 1, thk: num('thkEndTop') };
   const capBot = { name:'Box End — bottom',    w: W + 2*capOffset, h: D + 2*capOffset, pieces: 1, thk: num('thkEndBot') };
   const cover  = { name:'Cover',               w: W + 2*coverOffsetEff, h: H + 2*coverOffsetEff, pieces: 1, thk: num('thkCover') };
 
-  const parts = [body, capTop, capBot, cover];
+  // If a part won't fit on the sheet in either orientation, split it down the
+  // middle into two sections and add a splice offset to the freshly-cut edge
+  // of each half (so the two sections can be lapped/joined back together).
+  const SPLIT_OFFSET = 20;
+  function splitIfTooBig(part){
+    const fitsAsDrawn = part.w <= usableW && part.h <= usableH;
+    const fitsRotated = part.h <= usableW && part.w <= usableH;
+    if(fitsAsDrawn || fitsRotated || usableW <= 0 || usableH <= 0) return [part];
+
+    const splitOnW = part.w >= part.h; // split along the longer run
+    const half = (splitOnW ? part.w : part.h) / 2 + SPLIT_OFFSET;
+    const mk = (suffix) => ({
+      ...part,
+      baseName: part.baseName || part.name,
+      name: `${part.name} — Sec. ${suffix} (split, +${SPLIT_OFFSET}mm)`,
+      w: splitOnW ? half : part.w,
+      h: splitOnW ? part.h : half,
+    });
+    return [mk('A'), mk('B')];
+  }
+
+  const parts = [body, capTop, capBot, cover].flatMap(splitIfTooBig);
 
   let tbody = document.getElementById('partsBody');
   tbody.innerHTML = '';
@@ -669,6 +734,7 @@ function recalc(){
 
     p.areaTotal = areaPc * neededQty;
     p.neededQty = neededQty;
+    p.perSheet = perSheet;
   });
 
   lastGroupFractionSum = groupFractionSum;
@@ -714,21 +780,29 @@ function recalc(){
         <div class="stamp hero"><div class="label">Order — full sheets (rounded up)</div><div class="value">${gRoundSheets}</div></div>
         <div class="stamp hero"><div class="label">Price — this thickness</div><div class="value" id="groupPrice_${key}">₱0.00</div></div>
       </div>
-      <div class="diagram-wrap" style="margin-top:16px;">
-        <svg id="${svgId}" viewBox="0 0 440 232" xmlns="http://www.w3.org/2000/svg"></svg>
-        <div class="legend">
-          ${g.parts.map(p=>`<div><span class="swatch" style="background:${PART_COLORS[p.name]};"></span>${p.name} (${p.neededQty} pcs)</div>`).join('')}
-          <div style="margin-top:8px;"><span class="swatch" style="background:#F5B700;"></span>Issuance divider (dashed)</div>
-          <div><span class="swatch" style="background:#8B8677;"></span>Centerline (dash-dot)</div>
-          <div><span class="swatch" style="background:#E23D28;"></span>Bottom margin line</div>
-          <div style="margin-top:8px;">Each column = one metal issuance (25% of sheet). Layout shown is one representative sheet — order may need more.</div>
-        </div>
+      <div style="margin-top:16px;">
+        ${g.parts.map((p,pi)=>`
+          <div class="diagram-wrap" style="margin-top:${pi===0?'0':'20px'};padding-top:${pi===0?'0':'16px'};${pi===0?'':'border-top:1px dashed var(--rule);'}">
+            <svg id="${svgId}_${pi}" viewBox="0 0 440 232" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="legend">
+              <div><span class="swatch" style="background:${PART_COLORS[p.baseName || p.name]};"></span><b>${p.name}</b></div>
+              <div style="margin-top:6px;">Fits per sheet: <b>${p.perSheet}</b></div>
+              <div>Needed: ${p.neededQty} pcs</div>
+              <div style="margin-top:8px;"><span class="swatch" style="background:#F5B700;"></span>Issuance divider (dashed)</div>
+              <div><span class="swatch" style="background:#8B8677;"></span>Centerline (dash-dot)</div>
+              <div><span class="swatch" style="background:#E23D28;"></span>Bottom margin line</div>
+              <div style="margin-top:8px;">Each column = one metal issuance (25% of sheet). Layout shows this part only, packed on its own sheet.</div>
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
     container.appendChild(block);
 
-    const rects = packShelf(usableW, usableH, partGapX, partGapY, g.parts);
-    drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects);
+    g.parts.forEach((p,pi)=>{
+      const rects = packShelf(usableW, usableH, partGapX, partGapY, [{...p, diagramQty: Math.max(p.perSheet, p.neededQty)}]);
+      drawSheet(`${svgId}_${pi}`, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects);
+    });
   });
 
   // wire up the freshly-rendered per-thickness price inputs, then compute totals
@@ -765,10 +839,10 @@ function drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects){
   rects.forEach(r=>{
     const rx = usX + r.x*scale, ry = usY + r.y*scale;
     const rw = r.w*scale, rh = r.h*scale;
-    const color = PART_COLORS[r.name] || '#CCCCCC';
+    const color = PART_COLORS[r.baseName] || '#CCCCCC';
     svgContent += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${color}" fill-opacity="0.28" stroke="${color}" stroke-width="1"><title>${r.name} — ${fmt(r.w,0)}×${fmt(r.h,0)}mm</title></rect>`;
     if(rw > 26 && rh > 12){
-      const label = r.name.replace('Box End — ','End-').replace(' (3-face wrap)','');
+      const label = r.name.replace('Box End — ','End-').replace(' (3-face wrap)','').replace(/ \(split.*?\)/,'').replace(' — Sec.',' S');
       const fontSize = Math.min(8, rh*0.4);
       svgContent += `<text x="${rx+rw/2}" y="${ry+rh/2+fontSize*0.35}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${fontSize}" fill="${color}">${label}</text>`;
     }
