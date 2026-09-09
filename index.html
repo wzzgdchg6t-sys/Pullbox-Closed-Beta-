@@ -605,6 +605,77 @@ function packShelf(fieldW, fieldH, gapX, gapY, items){
   return rects;
 }
 
+// Bottom-left placer: nests different-sized parts together into a field of a
+// given width/height. It scans open corner points bottom-left first (lowest
+// y, then leftmost x) and drops each part into the first spot — trying both
+// orientations, rotating whichever way lets it fit — so gaps beside or above
+// earlier pieces get filled (using the full top-to-bottom height available)
+// before anything is pushed sideways. Returns only the parts that fit; the
+// caller checks the count to know if everything landed.
+function packBottomLeft(fieldW, fieldH, gapX, gapY, items){
+  const placed = [];
+  let candidates = [{x:0, y:0}];
+
+  const fitsAt = (x, y, w, h) => {
+    if(x < 0 || y < 0 || x + w > fieldW || y + h > fieldH) return false;
+    return !placed.some(r =>
+      x < r.x + r.w + gapX && x + w + gapX > r.x &&
+      y < r.y + r.h + gapY && y + h + gapY > r.y
+    );
+  };
+
+  // Place larger pieces first so they claim room before smaller ones fill gaps.
+  const queue = items.slice().sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+
+  queue.forEach(item=>{
+    const orientations = [
+      {w:item.w, h:item.h},
+      {w:item.h, h:item.w},
+    ];
+    const sortedCandidates = candidates.slice().sort((a,b)=> a.y - b.y || a.x - b.x);
+
+    let placement = null;
+    for(const pt of sortedCandidates){
+      for(const o of orientations){
+        if(fitsAt(pt.x, pt.y, o.w, o.h)){
+          placement = {x: pt.x, y: pt.y, w:o.w, h:o.h};
+          break;
+        }
+      }
+      if(placement) break;
+    }
+    if(!placement) return; // doesn't fit in this field in either orientation
+
+    placed.push({x:placement.x, y:placement.y, w:placement.w, h:placement.h, name:item.name, baseName:item.baseName || item.name});
+    candidates.push({x: placement.x + placement.w + gapX, y: placement.y});
+    candidates.push({x: placement.x, y: placement.y + placement.h + gapY});
+  });
+
+  return placed;
+}
+
+// Combined nester: places ONE of each given part together, regardless of how
+// many are actually needed, while minimizing how many quarter-sheet issuance
+// columns the layout spans — since parts are ordered/priced in quarter-sheet
+// increments, a nest that stays inside fewer quarters is cheaper even if it
+// isn't the most area-efficient use of the full sheet. It tries the narrowest
+// width first (1 quarter), then 2, 3, 4, stacking parts top-to-bottom (and
+// rotating them into side gaps) within that width, and stops at the first
+// width where every part actually fits.
+function packMinimizeQuarters(usableW, usableH, gapX, gapY, items){
+  const quarterW = usableW / 4;
+  for(let k=1; k<=4; k++){
+    const fieldW = quarterW * k;
+    const rects = packBottomLeft(fieldW, usableH, gapX, gapY, items);
+    if(rects.length === items.length){
+      return {rects, quartersUsed:k};
+    }
+  }
+  // Fallback (shouldn't normally happen): use the full sheet width, keeping
+  // whatever the bottom-left placer managed to fit.
+  return {rects: packBottomLeft(usableW, usableH, gapX, gapY, items), quartersUsed:4};
+}
+
 function recalc(){
   if(updateNemaView()) return; // NEMA 3R not built yet — coming soon panel is shown instead
 
@@ -765,6 +836,7 @@ function recalc(){
     const gPctUsed = usableArea > 0 ? (gArea / usableArea) * 100 : 0;
     const names = g.parts.map(p=>p.name.replace('Box End — ','End-')).join(', ');
     const svgId = 'sheetSvg_' + gi;
+    const combinedPack = packMinimizeQuarters(usableW, usableH, partGapX, partGapY, g.parts);
 
     const block = document.createElement('div');
     block.className = 'group-block';
@@ -785,8 +857,20 @@ function recalc(){
         <div class="stamp hero"><div class="label">Price — this thickness</div><div class="value" id="groupPrice_${key}">₱0.00</div></div>
       </div>
       <div style="margin-top:16px;">
+        <div class="diagram-wrap">
+          <svg id="${svgId}_combined" viewBox="0 0 440 232" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="legend">
+            <div style="margin-bottom:6px;"><b>Combined nest — 1 of each part</b></div>
+            ${g.parts.map(p=>`<div><span class="swatch" style="background:${PART_COLORS[p.baseName || p.name]};"></span>${p.name}</div>`).join('')}
+            <div style="margin-top:8px;">Quarter-sheets used: <b>${combinedPack.quartersUsed} / 4</b></div>
+            <div style="margin-top:8px;"><span class="swatch" style="background:#F5B700;"></span>Issuance divider (dashed)</div>
+            <div><span class="swatch" style="background:#8B8677;"></span>Centerline (dash-dot)</div>
+            <div><span class="swatch" style="background:#E23D28;"></span>Bottom margin line</div>
+            <div style="margin-top:8px;">One of each part stacked top-to-bottom and rotated into side gaps, packed to fit within as few quarter-sheet columns as possible — regardless of order quantity.</div>
+          </div>
+        </div>
         ${g.parts.map((p,pi)=>`
-          <div class="diagram-wrap" style="margin-top:${pi===0?'0':'20px'};padding-top:${pi===0?'0':'16px'};${pi===0?'':'border-top:1px dashed var(--rule);'}">
+          <div class="diagram-wrap" style="margin-top:20px;padding-top:16px;border-top:1px dashed var(--rule);">
             <svg id="${svgId}_${pi}" viewBox="0 0 440 232" xmlns="http://www.w3.org/2000/svg"></svg>
             <div class="legend">
               <div><span class="swatch" style="background:${PART_COLORS[p.baseName || p.name]};"></span><b>${p.name}</b></div>
@@ -802,6 +886,8 @@ function recalc(){
       </div>
     `;
     container.appendChild(block);
+
+    drawSheet(`${svgId}_combined`, sheetW, sheetH, mTop, mLeft, mRight, mBottom, combinedPack.rects);
 
     g.parts.forEach((p,pi)=>{
       const rects = packShelf(usableW, usableH, partGapX, partGapY, [{...p, diagramQty: Math.max(p.perSheet, p.neededQty)}]);
