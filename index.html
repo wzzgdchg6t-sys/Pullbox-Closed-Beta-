@@ -323,6 +323,15 @@
       </div>
 
       <div style="margin-top:14px;">
+        <label>Box Style</label>
+        <div class="type-toggle" id="styleToggle">
+          <label id="styleStdLbl"><input type="radio" name="boxStyle" id="styleStd" value="standard" checked>Pullbox</label>
+          <label id="styleWGLbl"><input type="radio" name="boxStyle" id="styleWG" value="wiregutter">Wire Gutter</label>
+        </div>
+        <div id="nema3rWGNote" style="display:none;margin-top:8px;color:var(--rule);font-size:13px;">Wire Gutter isn't available for NEMA 3R yet.</div>
+      </div>
+
+      <div style="margin-top:14px;">
         <label>Pullbox Type</label>
         <div class="type-toggle" id="typeToggle">
           <label id="typeBoltedLbl"><input type="radio" name="pullboxType" id="typeBolted" value="bolted" checked>Bolted</label>
@@ -334,14 +343,17 @@
       <details>
         <summary id="advancedSummary">Advanced — offsets, margins &amp; sheet size (NEMA 1)</summary>
         <div class="adv-grid" id="nema1OffsetGroup">
-          <div><label for="bodyOffset">Body side offset (mm, ea. side)</label><input type="number" id="bodyOffset" value="20"></div>
-          <div><label for="capOffset">Box end / cover offset (mm, all sides)</label><input type="number" id="capOffset" value="25"></div>
+          <div id="bodyOffsetField"><label for="bodyOffset">Body side offset (mm, ea. side)</label><input type="number" id="bodyOffset" value="20"></div>
+          <div id="capOffsetField"><label for="capOffset">Box end / cover offset (mm, all sides)</label><input type="number" id="capOffset" value="25"></div>
           <div><label for="swingOffset">Swing type — extra side offset (mm, ea. side)</label><input type="number" id="swingOffset" value="20"></div>
         </div>
         <div class="adv-grid" id="nema3rOffsetGroup" style="display:none;">
           <div><label for="bodyOffset3r">Body side offset (mm, ea. side) — fixed</label><input type="number" id="bodyOffset3r" value="70" disabled></div>
           <div><label for="capOffset3r">Box end offset (mm, all sides) — fixed</label><input type="number" id="capOffset3r" value="75" disabled></div>
           <div><label for="coverOffset3r">Cover offset (mm, all sides) — fixed</label><input type="number" id="coverOffset3r" value="50" disabled></div>
+        </div>
+        <div class="adv-grid" id="wgOffsetGroup" style="display:none;">
+          <div><label for="wgOffset">Wire gutter offset (mm, body/cover sides &amp; box end)</label><input type="number" id="wgOffset" value="25"></div>
         </div>
         <div class="adv-grid">
           <div><label for="sheetW">Sheet length (mm)</label><input type="number" id="sheetW" value="2440"></div>
@@ -467,6 +479,7 @@ function fmt(n, d){ return n.toLocaleString(undefined,{minimumFractionDigits:d, 
 
 const PART_COLORS = {
   'Body (3-face wrap)': '#4FA88C',
+  'Body (wire gutter)': '#4FA88C',
   'Cover': '#6FA8DC',
   'Box End — top': '#C97FD9',
   'Box End — bottom': '#E2A33A'
@@ -510,8 +523,19 @@ function getNemaType(){
   return document.getElementById('nema3r').checked ? 'nema3r' : 'nema1';
 }
 
+function getBoxStyle(){
+  return document.getElementById('styleWG').checked ? 'wiregutter' : 'standard';
+}
+
 function updateNemaView(){
   const is3r = getNemaType() === 'nema3r';
+  // Wire gutter isn't supported for NEMA 3R yet — force Pullbox style.
+  const wgInput = document.getElementById('styleWG');
+  wgInput.disabled = is3r;
+  if(is3r) document.getElementById('styleStd').checked = true;
+  const isWG = getBoxStyle() === 'wiregutter';
+  document.getElementById('styleStdLbl').classList.toggle('active', !isWG);
+  document.getElementById('styleWGLbl').classList.toggle('active', isWG);
   const nemaType = is3r ? 'nema3r' : 'nema1';
   document.getElementById('nema1Lbl').classList.toggle('active', !is3r);
   document.getElementById('nema3rLbl').classList.toggle('active', is3r);
@@ -524,10 +548,15 @@ function updateNemaView(){
   document.getElementById('nema3rSwingNote').style.display = is3r ? '' : 'none';
 
   // Swap the offset inputs shown in the Advanced section.
+  document.getElementById('nema3rWGNote').style.display = is3r ? '' : 'none';
   document.getElementById('nema1OffsetGroup').style.display = is3r ? 'none' : '';
+  document.getElementById('bodyOffsetField').style.display = isWG ? 'none' : '';
+  document.getElementById('capOffsetField').style.display = isWG ? 'none' : '';
   document.getElementById('nema3rOffsetGroup').style.display = is3r ? '' : 'none';
+  document.getElementById('wgOffsetGroup').style.display = isWG ? '' : 'none';
   document.getElementById('advancedSummary').textContent =
-    is3r ? 'Advanced — offsets, margins & sheet size (NEMA 3R)' : 'Advanced — offsets, margins & sheet size (NEMA 1)';
+    (isWG ? 'Advanced — offsets, margins & sheet size (Wire Gutter, ' : 'Advanced — offsets, margins & sheet size (') +
+    (is3r ? 'NEMA 3R)' : 'NEMA 1)');
 
   // Mounting pan is a NEMA 3R-only part.
   document.getElementById('thkMountingPanField').style.display = is3r ? '' : 'none';
@@ -642,9 +671,9 @@ function packShelf(fieldW, fieldH, gapX, gapY, items){
     // Use whichever orientation actually fits the field — fitCount (used for
     // the "fits per sheet" number) already tries both orientations, so the
     // diagram needs to match or it can end up blank even when parts do fit.
-    let pw = p.w, ph = p.h;
+    let pw = p.w, ph = p.h, rotated = false;
     if((pw > fieldW || ph > fieldH) && ph <= fieldW && pw <= fieldH){
-      pw = p.h; ph = p.w;
+      pw = p.h; ph = p.w; rotated = true;
     }
     if(pw > fieldW || ph > fieldH) return; // genuinely too large for the field, even rotated
     let remaining = p.diagramQty ?? p.neededQty;
@@ -655,7 +684,7 @@ function packShelf(fieldW, fieldH, gapX, gapY, items){
         rowH = 0;
       }
       if(y + ph > fieldH) break; // out of vertical room — remainder would need another sheet
-      rects.push({x, y, w:pw, h:ph, name:p.name, baseName:p.baseName || p.name});
+      rects.push({x, y, w:pw, h:ph, name:p.name, baseName:p.baseName || p.name, faceOffsets:p.faceOffsets, rotated});
       x += pw + gapX;
       rowH = Math.max(rowH, ph);
       remaining--;
@@ -693,11 +722,12 @@ function packBottomLeft(fieldW, fieldH, gapX, gapY, items){
     ];
     const sortedCandidates = candidates.slice().sort((a,b)=> a.y - b.y || a.x - b.x);
 
-    let placement = null;
+    let placement = null, rotated = false;
     for(const pt of sortedCandidates){
       for(const o of orientations){
         if(fitsAt(pt.x, pt.y, o.w, o.h)){
           placement = {x: pt.x, y: pt.y, w:o.w, h:o.h};
+          rotated = (o.w !== item.w);
           break;
         }
       }
@@ -705,7 +735,7 @@ function packBottomLeft(fieldW, fieldH, gapX, gapY, items){
     }
     if(!placement) return; // doesn't fit in this field in either orientation
 
-    placed.push({x:placement.x, y:placement.y, w:placement.w, h:placement.h, name:item.name, baseName:item.baseName || item.name});
+    placed.push({x:placement.x, y:placement.y, w:placement.w, h:placement.h, name:item.name, baseName:item.baseName || item.name, faceOffsets:item.faceOffsets, rotated});
     candidates.push({x: placement.x + placement.w + gapX, y: placement.y});
     candidates.push({x: placement.x, y: placement.y + placement.h + gapY});
   });
@@ -755,6 +785,11 @@ function recalc(){
     coverOffsetEff = capOffset + (isSwing ? swingOffset : 0);
   }
 
+  // Wire gutter style: overrides the pullbox geometry below. Body and cover
+  // are both W (+ side offsets) by D + H + D; box ends are H × D (+ offset).
+  const isWG = getBoxStyle() === 'wiregutter';
+  const wgOffset = num('wgOffset');
+
   const sheetW = num('sheetW'), sheetH = num('sheetH');
   const mTop = num('mTop'), mLeft = num('mLeft'), mRight = num('mRight'), mBottom = num('mBottom');
   const partGapX = num('gapX'), partGapY = num('gapY');
@@ -766,9 +801,11 @@ function recalc(){
   if(isSwing) buildAccessoryRows();
 
   document.getElementById('bodyFormulaNote').textContent =
+    isWG ? (isSwing ? `(Width + 2×(${wgOffset}+${swingOffset})) × (Depth + Height + Depth) — wire gutter` : `(Width + 2×${wgOffset}) × (Depth + Height + Depth) — wire gutter`) :
     is3r ? `Height × (Width + 2×Depth + 2×70)` :
     isSwing ? `Height × (Width + 2×Depth + 2×(${bodyOffset}+${swingOffset}))` : `Height × (Width + 2×Depth + 2×${bodyOffset})`;
   document.getElementById('coverFormulaNote').textContent =
+    isWG ? (isSwing ? `(Width + 2×(${wgOffset}+${swingOffset})) × (Depth + Height + Depth) — same as body` : `(Width + 2×${wgOffset}) × (Depth + Height + Depth) — same as body`) :
     is3r ? `(Width + 2×50) × (Height + 2×50)` :
     isSwing ? `(Width + 2×(${capOffset}+${swingOffset})) × (Height + 2×(${capOffset}+${swingOffset}))` : `(Width + 2×${capOffset}) × (Height + 2×${capOffset})`;
 
@@ -818,12 +855,50 @@ function recalc(){
   }
 
   // Flat pattern sizes (thickness in mm, read live so per-part overrides apply)
-  const body   = { name:'Body (3-face wrap)', w: H, h: W + 2*D + 2*bodyOffsetEff, pieces: 1, thk: num('thkBody') };
-  const capTop = { name:'Box End — top',       w: W + 2*capOffset, h: D + 2*capOffset, pieces: 1, thk: num('thkEndTop') };
-  const capBot = { name:'Box End — bottom',    w: W + 2*capOffset, h: D + 2*capOffset, pieces: 1, thk: num('thkEndBot') };
-  const cover  = { name:'Cover',               w: W + 2*coverOffsetEff, h: H + 2*coverOffsetEff, pieces: 1, thk: num('thkCover') };
-  // NEMA 3R only — mounting pan, same size as the cover for now.
-  const mountingPan = { name:'Mounting Pan',   w: W + 2*coverOffsetEff, h: H + 2*coverOffsetEff, pieces: 1, thk: num('thkMountingPan') };
+  // faceOffsets describes the fold lines between faces, drawn on top of each
+  // part's rectangle in the sheet diagrams:
+  //  - 'strip': fold lines cut across the part's h-axis at cumulative
+  //    distances, splitting it into the listed segments (flap/side/back/side/flap).
+  //  - 'border': a single fold line inset by `offset` on all 4 sides,
+  //    separating the center face from the surrounding flange.
+  // Wire gutter face: [W × H] + [W × D] top and bottom, i.e. one flat piece
+  // W wide by D + H + D tall, with a side offset on the left and right.
+  const wgSideOffset = wgOffset + (isSwing ? swingOffset : 0);
+  const wgFaceW = W + 2*wgSideOffset;
+  const wgFaceH = D + H + D;
+  const wgFaceOffsets = { type:'strip', sideOffset: wgSideOffset, segments:[
+    {size: D, label: ''},
+    {size: H, label: ''},
+    {size: D, label: ''},
+  ] };
+
+  const body   = isWG
+    ? { name:'Body (wire gutter)', w: wgFaceW, h: wgFaceH, pieces: 1, thk: num('thkBody'),
+        faceOffsets: wgFaceOffsets }
+    : { name:'Body (3-face wrap)', w: H, h: W + 2*D + 2*bodyOffsetEff, pieces: 1, thk: num('thkBody'),
+    faceOffsets: { type:'strip', segments:[
+      {size: bodyOffsetEff, label: String(bodyOffsetEff)},
+      {size: D, label: ''},
+      {size: W, label: ''},
+      {size: D, label: ''},
+      {size: bodyOffsetEff, label: String(bodyOffsetEff)},
+    ] } };
+  // Box end: H × D plus offset on all four sides for wire gutter, W × D otherwise.
+  const endW = isWG ? H + 2*wgOffset : W + 2*capOffset;
+  const endH = isWG ? D + 2*wgOffset : D + 2*capOffset;
+  const endOffset = isWG ? wgOffset : capOffset;
+  const capTop = { name:'Box End — top',       w: endW, h: endH, pieces: 1, thk: num('thkEndTop'),
+    faceOffsets: { type:'border', offset: endOffset } };
+  const capBot = { name:'Box End — bottom',    w: endW, h: endH, pieces: 1, thk: num('thkEndBot'),
+    faceOffsets: { type:'border', offset: endOffset } };
+  const cover  = isWG
+    ? { name:'Cover', w: wgFaceW, h: wgFaceH, pieces: 1, thk: num('thkCover'),
+        faceOffsets: wgFaceOffsets }
+    : { name:'Cover',               w: W + 2*coverOffsetEff, h: H + 2*coverOffsetEff, pieces: 1, thk: num('thkCover'),
+    faceOffsets: { type:'border', offset: coverOffsetEff } };
+  // NEMA 3R only — mounting pan, same size as the cover for now. Flat plate,
+  // no flanges, so no fold lines.
+  const mountingPan = { name:'Mounting Pan',   w: cover.w, h: cover.h, pieces: 1, thk: num('thkMountingPan') };
 
   // If a part won't fit on the sheet in either orientation, split it down the
   // middle into two sections and add a splice offset to the freshly-cut edge
@@ -842,6 +917,7 @@ function recalc(){
       name: `${part.name} — Sec. ${suffix} (split, +${SPLIT_OFFSET}mm)`,
       w: splitOnW ? half : part.w,
       h: splitOnW ? part.h : half,
+      faceOffsets: null, // a split section's fold geometry no longer lines up, so skip the lines
     });
     return [mk('A'), mk('B')];
   }
@@ -943,6 +1019,7 @@ function recalc(){
             <div style="margin-top:8px;"><span class="swatch" style="background:#F5B700;"></span>Issuance divider (dashed)</div>
             <div><span class="swatch" style="background:#8B8677;"></span>Centerline (dash-dot)</div>
             <div><span class="swatch" style="background:#E23D28;"></span>Bottom margin line</div>
+            <div><span class="swatch" style="background:#5EC8D8;"></span>Fold line between faces (offset in mm)</div>
             <div style="margin-top:8px;">One of each part stacked top-to-bottom and rotated into side gaps, packed to fit within as few quarter-sheet columns as possible — regardless of order quantity.</div>
           </div>
         </div>
@@ -956,6 +1033,7 @@ function recalc(){
               <div style="margin-top:8px;"><span class="swatch" style="background:#F5B700;"></span>Issuance divider (dashed)</div>
               <div><span class="swatch" style="background:#8B8677;"></span>Centerline (dash-dot)</div>
               <div><span class="swatch" style="background:#E23D28;"></span>Bottom margin line</div>
+              <div><span class="swatch" style="background:#5EC8D8;"></span>Fold line between faces (offset in mm)</div>
               <div style="margin-top:8px;">Each column = one metal issuance (25% of sheet). Layout shows this part only, packed on its own sheet.</div>
             </div>
           </div>
@@ -999,6 +1077,7 @@ function drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects){
   const YELLOW = '#F5B700';
   const GRAY = '#8B8677';
   const RED = '#E23D28';
+  const CYAN = '#5EC8D8';
 
   let svgContent = `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="#0A0A0A"></rect>`;
 
@@ -1009,9 +1088,62 @@ function drawSheet(svgId, sheetW, sheetH, mTop, mLeft, mRight, mBottom, rects){
     const color = PART_COLORS[r.baseName] || '#CCCCCC';
     svgContent += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${color}" fill-opacity="0.28" stroke="${color}" stroke-width="1"><title>${r.name} — ${fmt(r.w,0)}×${fmt(r.h,0)}mm</title></rect>`;
     if(rw > 26 && rh > 12){
-      const label = r.name.replace('Box End — ','End-').replace(' (3-face wrap)','').replace(/ \(split.*?\)/,'').replace(' — Sec.',' S');
+      const label = r.name.replace('Box End — ','End-').replace(' (3-face wrap)','').replace(' (wire gutter)','').replace(/ \(split.*?\)/,'').replace(' — Sec.',' S');
       const fontSize = Math.min(8, rh*0.4);
       svgContent += `<text x="${rx+rw/2}" y="${ry+rh/2+fontSize*0.35}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${fontSize}" fill="${color}">${label}</text>`;
+    }
+
+    // fold lines between faces + offset labels
+    if(r.faceOffsets && rw > 20 && rh > 20){
+      const fo = r.faceOffsets;
+      const foFontSize = Math.min(7, Math.min(rw,rh)*0.3);
+      if(fo.type === 'border' && fo.offset > 0){
+        const off = fo.offset*scale;
+        if(rw - 2*off > 1 && rh - 2*off > 1){
+          svgContent += `<rect x="${rx+off}" y="${ry+off}" width="${rw-2*off}" height="${rh-2*off}" fill="none" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></rect>`;
+          svgContent += `<text x="${rx+3}" y="${ry+off-2 > ry+foFontSize ? ry+off-2 : ry+off+foFontSize+2}" font-family="IBM Plex Mono, monospace" font-size="${foFontSize}" fill="${CYAN}">${fmt(fo.offset,0)}</text>`;
+        }
+      } else if(fo.type === 'strip'){
+        // lines run across the part's original h-axis; if the placed rect is
+        // rotated, that axis is now the rect's width instead of its height.
+        let pos = 0;
+        for(let i=0;i<fo.segments.length;i++){
+          const segPx = fo.segments[i].size*scale;
+          if(i < fo.segments.length-1){
+            pos += segPx;
+            if(r.rotated){
+              svgContent += `<line x1="${rx+pos}" y1="${ry}" x2="${rx+pos}" y2="${ry+rh}" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></line>`;
+            } else {
+              svgContent += `<line x1="${rx}" y1="${ry+pos}" x2="${rx+rw}" y2="${ry+pos}" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></line>`;
+            }
+          }
+          if(fo.segments[i].label){
+            const mid = pos - segPx/2;
+            if(r.rotated){
+              svgContent += `<text x="${rx+mid}" y="${ry+10}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${foFontSize}" fill="${CYAN}">${fo.segments[i].label}</text>`;
+            } else {
+              svgContent += `<text x="${rx+3}" y="${ry+mid+foFontSize*0.35}" font-family="IBM Plex Mono, monospace" font-size="${foFontSize}" fill="${CYAN}">${fo.segments[i].label}</text>`;
+            }
+          }
+        }
+        // Wire gutter: side offset fold lines run along the part's w-axis
+        // (perpendicular to the face strip lines), inset from both edges.
+        if(fo.sideOffset > 0){
+          const so = fo.sideOffset*scale;
+          const along = r.rotated ? rh : rw;
+          if(along - 2*so > 1){
+            if(r.rotated){
+              svgContent += `<line x1="${rx}" y1="${ry+so}" x2="${rx+rw}" y2="${ry+so}" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></line>`;
+              svgContent += `<line x1="${rx}" y1="${ry+rh-so}" x2="${rx+rw}" y2="${ry+rh-so}" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></line>`;
+              svgContent += `<text x="${rx+rw/2}" y="${ry+so-2}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${foFontSize}" fill="${CYAN}">${fmt(fo.sideOffset,0)}</text>`;
+            } else {
+              svgContent += `<line x1="${rx+so}" y1="${ry}" x2="${rx+so}" y2="${ry+rh}" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></line>`;
+              svgContent += `<line x1="${rx+rw-so}" y1="${ry}" x2="${rx+rw-so}" y2="${ry+rh}" stroke="${CYAN}" stroke-width="0.7" stroke-dasharray="4,2"></line>`;
+              svgContent += `<text x="${rx+so/2}" y="${ry+rh/2}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="${foFontSize}" fill="${CYAN}">${fmt(fo.sideOffset,0)}</text>`;
+            }
+          }
+        }
+      }
     }
   });
 
