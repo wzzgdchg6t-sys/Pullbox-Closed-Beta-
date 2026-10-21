@@ -448,10 +448,11 @@
     <div class="card-inner">
       <h2><span class="num">05</span>Price Estimate</h2>
       <div class="stamp-row">
-        <div class="stamp hero"><div class="label">Estimated price</div><div class="value" id="priceValue">₱0.00</div></div>
+        <div class="stamp hero"><div class="label">Estimated price — separate sheets</div><div class="value" id="priceValue">₱0.00</div></div>
+        <div class="stamp hero"><div class="label">Estimated price — combined nest</div><div class="value" id="priceValueCombined">₱0.00</div></div>
       </div>
-      <div class="note" style="display:none;">
-        Each thickness is priced separately, then added together: for a given thickness, <b>price = metal price for that thickness (₱/sheet) × Σ(1 / fits-per-sheet) across all parts of that thickness × 1.3</b>. Each part's "fits per sheet" comes from the Cut Sizes table above — this treats each part as if cut from its own sheet, so it does not assume different parts are nested together on one sheet. Set each thickness's price in section <b>04</b>. When Pullbox Type is Swing, the accessories total from section <b>02b</b> (Σ price × qty × 1.3) is added on top of the metal total shown here.
+      <div class="note">
+        Two prices, same metal prices and accessories total, two nesting assumptions — both priced for one assembly, not scaled by order qty. <b>Separate sheets:</b> each thickness's price = metal price (₱/sheet) × Σ(1 / fits-per-sheet) across all parts of that thickness × 1.3 — treats each part as if cut from its own sheet, not nested with the others. <b>Combined nest:</b> uses the "Combined nest — 1 of each part" layout in section <b>04</b> (one of each part packed together into as few quarter-sheets as possible) — price = metal price × (quarter-sheets used ÷ 4) × 1.3. Set each thickness's price in section <b>04</b>. When Pullbox Type is Swing, the accessories total from section <b>02b</b> (Σ price × qty × 1.3) is added on top of both metal totals.
       </div>
     </div>
   </div>
@@ -478,6 +479,10 @@ const thicknessPriceStore = {};
 // Latest Σ(1/fits-per-sheet) per thickness key, refreshed each recalc(),
 // used by updatePricing() to recompute totals without rebuilding the DOM.
 let lastGroupFractionSum = {};
+// Latest combined-nest quarter-sheets-per-set per thickness key (one of each
+// part, nested together), refreshed each recalc(), used by updatePricing()
+// to recompute the combined-nest price without rebuilding the DOM.
+let lastCombinedQuarters = {};
 
 // Accessory rows (Swing type only). Persists by row index across
 // recalcs/count changes so typed values survive. Separate defaults/stores
@@ -594,20 +599,36 @@ function updateAccessoriesTotal(){
 }
 
 function updatePricing(){
-  let grandTotal = 0;
+  let grandTotal = 0, grandTotalCombined = 0;
   Object.keys(lastGroupFractionSum).forEach(key=>{
     const input = document.getElementById('price_' + key);
     const price = input ? (parseFloat(input.value) || 0) : (thicknessPriceStore[key] ?? 300);
     thicknessPriceStore[key] = price;
+
     const groupPrice = price * lastGroupFractionSum[key] * 1.3;
     grandTotal += groupPrice;
     const stamp = document.getElementById('groupPrice_' + key);
     if(stamp) stamp.textContent = '₱' + fmt(groupPrice, 2);
+
+    // Combined-nest price: the total quarter-sheets needed for one of each
+    // part, nested together — a single assembly's worth, same convention as
+    // the separate-sheets price above (not scaled by order qty).
+    const quartersUsed = lastCombinedQuarters[key] ?? 0;
+    const groupPriceCombined = price * (quartersUsed / 4) * 1.3;
+    grandTotalCombined += groupPriceCombined;
+    const stampCombined = document.getElementById('groupPriceCombined_' + key);
+    if(stampCombined) stampCombined.textContent = '₱' + fmt(groupPriceCombined, 2);
+    const sheetsStamp = document.getElementById('groupSheetsCombined_' + key);
+    if(sheetsStamp) sheetsStamp.textContent = quartersUsed + ' / 4';
   });
   if(getPullboxType() === 'swing'){
-    grandTotal += getAccessoriesTotal();
+    const accTotal = getAccessoriesTotal();
+    grandTotal += accTotal;
+    grandTotalCombined += accTotal;
   }
   document.getElementById('priceValue').textContent = '₱' + fmt(grandTotal, 2);
+  const combinedEl = document.getElementById('priceValueCombined');
+  if(combinedEl) combinedEl.textContent = '₱' + fmt(grandTotalCombined, 2);
 }
 
 // Shelf packer: places pieces left-to-right, wrapping to a new row when a piece
@@ -874,6 +895,7 @@ function recalc(){
     groups[key].parts.push(p);
   });
   const groupKeys = Object.keys(groups).sort((a,b)=> parseFloat(a)-parseFloat(b));
+  lastCombinedQuarters = {};
 
   const container = document.getElementById('groupsContainer');
   container.innerHTML = '';
@@ -889,6 +911,7 @@ function recalc(){
     const names = g.parts.map(p=>p.name.replace('Box End — ','End-')).join(', ');
     const svgId = 'sheetSvg_' + gi;
     const combinedPack = packMinimizeQuarters(usableW, usableH, partGapX, partGapY, g.parts);
+    lastCombinedQuarters[key] = combinedPack.quartersUsed;
 
     const block = document.createElement('div');
     block.className = 'group-block';
@@ -907,6 +930,8 @@ function recalc(){
         <div class="stamp hero"><div class="label">Order — quarter-sheets (rounded up)</div><div class="value">${gRoundQuarters}</div></div>
         <div class="stamp hero"><div class="label">Order — full sheets (rounded up)</div><div class="value">${gRoundSheets}</div></div>
         <div class="stamp hero"><div class="label">Price — this thickness</div><div class="value" id="groupPrice_${key}">₱0.00</div></div>
+        <div class="stamp hero"><div class="label">Quarter-sheets used (combined nest)</div><div class="value" id="groupSheetsCombined_${key}">0 / 4</div></div>
+        <div class="stamp hero"><div class="label">Price — this thickness (combined nest)</div><div class="value" id="groupPriceCombined_${key}">₱0.00</div></div>
       </div>
       <div style="margin-top:16px;">
         <div class="diagram-wrap">
