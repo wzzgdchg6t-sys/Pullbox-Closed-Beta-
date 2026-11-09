@@ -305,7 +305,7 @@
       <h2><span class="num">01</span>Pullbox Dimensions</h2>
       <div class="grid">
         <div>
-          <label for="W">Width (mm)</label>
+          <label for="W" id="lblW">Width (mm)</label>
           <input type="number" id="W" value="400" min="0">
         </div>
         <div>
@@ -462,9 +462,11 @@
       <div class="stamp-row">
         <div class="stamp hero"><div class="label">Estimated price — separate sheets</div><div class="value" id="priceValue">₱0.00</div></div>
         <div class="stamp hero"><div class="label">Estimated price — combined nest</div><div class="value" id="priceValueCombined">₱0.00</div></div>
+        <div class="stamp hero"><div class="label">Estimated price per box — order quantity (<span id="bulkQtyLabel">1</span> pcs)</div><div class="value" id="priceValueBulk">₱0.00</div></div>
       </div>
       <div class="note">
-        Two prices, same metal prices and accessories total, two nesting assumptions — both priced for one assembly, not scaled by order qty. <b>Separate sheets:</b> each thickness's price = metal price (₱/sheet) × Σ(1 / fits-per-sheet) across all parts of that thickness × 1.3 — treats each part as if cut from its own sheet, not nested with the others. <b>Combined nest:</b> uses the "Combined nest — 1 of each part" layout in section <b>04</b> (one of each part packed together into as few quarter-sheets as possible) — price = metal price × (quarter-sheets used ÷ 4) × 1.3. Set each thickness's price in section <b>04</b>. When Pullbox Type is Swing, the accessories total from section <b>02b</b> (Σ price × qty × 1.3) is added on top of both metal totals.
+        Three prices, same metal prices and accessories total. The first two are priced for one assembly, not scaled by order qty. <b>Separate sheets:</b> each thickness's price = metal price (₱/sheet) × Σ(1 / fits-per-sheet) across all parts of that thickness × 1.3 — treats each part as if cut from its own sheet, not nested with the others. <b>Combined nest:</b> uses the "Combined nest — 1 of each part" layout in section <b>04</b> (one of each part packed together into as few quarter-sheets as possible) — price = metal price × (quarter-sheets used ÷ 4) × 1.3. Set each thickness's price in section <b>04</b>. When Pullbox Type is Swing, the accessories total from section <b>02b</b> (Σ price × qty × 1.3) is added on top of all three metal totals. <b>Per box — order quantity:</b> uses the quarter-sheets needed for the whole order quantity, found by actually nesting every piece (all parts × order qty, with the gaps and margins from Advanced) onto sheets — the &ldquo;Order — quarter-sheets, nested&rdquo; figure in section <b>04</b>, per thickness. This is higher than the area-only count because gaps, margins and part shapes waste some of each sheet — price per box = quarter-sheets × ¼ × metal price × 1.3 ÷ order qty. For example, 13 quarter-sheets for 10 boxes = 13 × 0.25 × sheet price × 1.3 ÷ 10.
+        <span id="wgPriceNote" style="display:none;"><br><b>₱0.00</b> is included in all three prices (per box) for Wire Gutter: one extra quarter-sheet of 1.4mm metal (1.4mm price × ¼ × 1.3), always added.</span>
       </div>
     </div>
   </div>
@@ -496,6 +498,10 @@ let lastGroupFractionSum = {};
 // part, nested together), refreshed each recalc(), used by updatePricing()
 // to recompute the combined-nest price without rebuilding the DOM.
 let lastCombinedQuarters = {};
+// Exact order quarter-sheets (rounded up) per thickness for the whole order qty,
+// and the order qty itself — used for the per-box bulk price.
+let lastOrderQuarters = {};
+let lastQty = 1;
 
 // Accessory rows (Swing type only). Persists by row index across
 // recalcs/count changes so typed values survive. Separate defaults/stores
@@ -549,6 +555,7 @@ function updateNemaView(){
 
   // Swap the offset inputs shown in the Advanced section.
   document.getElementById('nema3rWGNote').style.display = is3r ? '' : 'none';
+  document.getElementById('lblW').textContent = isWG ? 'Length (mm)' : 'Width (mm)';
   document.getElementById('nema1OffsetGroup').style.display = is3r ? 'none' : '';
   document.getElementById('bodyOffsetField').style.display = isWG ? 'none' : '';
   document.getElementById('capOffsetField').style.display = isWG ? 'none' : '';
@@ -628,7 +635,7 @@ function updateAccessoriesTotal(){
 }
 
 function updatePricing(){
-  let grandTotal = 0, grandTotalCombined = 0;
+  let grandTotal = 0, grandTotalCombined = 0, grandTotalBulk = 0;
   Object.keys(lastGroupFractionSum).forEach(key=>{
     const input = document.getElementById('price_' + key);
     const price = input ? (parseFloat(input.value) || 0) : (thicknessPriceStore[key] ?? 300);
@@ -647,17 +654,43 @@ function updatePricing(){
     grandTotalCombined += groupPriceCombined;
     const stampCombined = document.getElementById('groupPriceCombined_' + key);
     if(stampCombined) stampCombined.textContent = '₱' + fmt(groupPriceCombined, 2);
+    // Bulk price per box: total quarter-sheets needed for the whole order
+    // (rounded up), priced at ¼ sheet each × 1.3, spread over the order qty.
+    const orderQuarters = lastOrderQuarters[key] ?? 0;
+    const groupPriceBulk = price * orderQuarters * 0.25 * 1.3 / Math.max(1, lastQty);
+    grandTotalBulk += groupPriceBulk;
+    const stampBulk = document.getElementById('groupPriceBulk_' + key);
+    if(stampBulk) stampBulk.textContent = '₱' + fmt(groupPriceBulk, 2);
     const sheetsStamp = document.getElementById('groupSheetsCombined_' + key);
     if(sheetsStamp) sheetsStamp.textContent = quartersUsed + ' / 4';
   });
+  // Wire gutter: always add one quarter sheet of 1.4mm metal (× 1.3) on top.
+  const wgNote = document.getElementById('wgPriceNote');
+  if(getBoxStyle() === 'wiregutter'){
+    const wgKey = '1.40';
+    const wgInput = document.getElementById('price_' + wgKey);
+    const wgPrice = wgInput ? (parseFloat(wgInput.value) || 0) : (thicknessPriceStore[wgKey] ?? 300);
+    const wgExtra = wgPrice * 0.25 * 1.3;
+    grandTotal += wgExtra;
+    grandTotalCombined += wgExtra;
+    grandTotalBulk += wgExtra;
+    if(wgNote){ wgNote.style.display = ''; wgNote.querySelector('b').textContent = '₱' + fmt(wgExtra, 2); }
+  } else if(wgNote){
+    wgNote.style.display = 'none';
+  }
   if(getPullboxType() === 'swing'){
     const accTotal = getAccessoriesTotal();
     grandTotal += accTotal;
     grandTotalCombined += accTotal;
+    grandTotalBulk += accTotal;
   }
   document.getElementById('priceValue').textContent = '₱' + fmt(grandTotal, 2);
   const combinedEl = document.getElementById('priceValueCombined');
   if(combinedEl) combinedEl.textContent = '₱' + fmt(grandTotalCombined, 2);
+  const bulkEl = document.getElementById('priceValueBulk');
+  if(bulkEl) bulkEl.textContent = '₱' + fmt(grandTotalBulk, 2);
+  const bulkLbl = document.getElementById('bulkQtyLabel');
+  if(bulkLbl) bulkLbl.textContent = lastQty;
 }
 
 // Shelf packer: places pieces left-to-right, wrapping to a new row when a piece
@@ -735,7 +768,7 @@ function packBottomLeft(fieldW, fieldH, gapX, gapY, items){
     }
     if(!placement) return; // doesn't fit in this field in either orientation
 
-    placed.push({x:placement.x, y:placement.y, w:placement.w, h:placement.h, name:item.name, baseName:item.baseName || item.name, faceOffsets:item.faceOffsets, rotated});
+    placed.push({id:item.id, x:placement.x, y:placement.y, w:placement.w, h:placement.h, name:item.name, baseName:item.baseName || item.name, faceOffsets:item.faceOffsets, rotated});
     candidates.push({x: placement.x + placement.w + gapX, y: placement.y});
     candidates.push({x: placement.x, y: placement.y + placement.h + gapY});
   });
@@ -765,10 +798,48 @@ function packMinimizeQuarters(usableW, usableH, gapX, gapY, items){
   return {rects: packBottomLeft(usableW, usableH, gapX, gapY, items), quartersUsed:4};
 }
 
+// Exact quarter-sheets for a whole order: lays out every individual piece
+// (each part × order qty) onto real sheets with the same bottom-left nester
+// used elsewhere, gaps and margins included. Full sheets count as 4 quarters;
+// the final partly-used sheet counts only as many quarter columns as it needs.
+function packOrderQuarters(usableW, usableH, gapX, gapY, parts, qty){
+  if(usableW <= 0 || usableH <= 0) return 0;
+  let remaining = [];
+  let id = 0;
+  parts.forEach(p=>{
+    const n = Math.max(0, Math.round(p.pieces * qty));
+    for(let i=0; i<n; i++) remaining.push({id: id++, w:p.w, h:p.h, name:p.name});
+  });
+  const quarterW = usableW / 4;
+  let quarters = 0;
+  let guard = 0;
+  while(remaining.length && guard++ < 2000){
+    const placed = packBottomLeft(usableW, usableH, gapX, gapY, remaining);
+    if(placed.length === remaining.length){
+      // everything left fits on one sheet: use the fewest quarter columns that hold it
+      let k = 4;
+      for(let j=1; j<=3; j++){
+        if(packBottomLeft(quarterW*j, usableH, gapX, gapY, remaining).length === remaining.length){ k = j; break; }
+      }
+      quarters += k;
+      remaining = [];
+    } else if(placed.length === 0){
+      // nothing fits (shouldn't happen — oversized parts are split earlier)
+      quarters += 4; remaining.shift();
+    } else {
+      quarters += 4;
+      const done = new Set(placed.map(r=>r.id));
+      remaining = remaining.filter(it=>!done.has(it.id));
+    }
+  }
+  return quarters;
+}
+
 function recalc(){
   const is3r = updateNemaView();
 
   const W = num('W'), H = num('H'), D = num('D'), qty = Math.max(1, num('qty'));
+  lastQty = qty;
   const pullboxType = getPullboxType(); // updateNemaView() already forced this to 'swing' when is3r
   const isSwing = pullboxType === 'swing';
 
@@ -801,11 +872,11 @@ function recalc(){
   if(isSwing) buildAccessoryRows();
 
   document.getElementById('bodyFormulaNote').textContent =
-    isWG ? (isSwing ? `(Width + 2×(${wgOffset}+${swingOffset})) × (Depth + Height + Depth) — wire gutter` : `(Width + 2×${wgOffset}) × (Depth + Height + Depth) — wire gutter`) :
+    isWG ? (isSwing ? `(Length + 2×(${wgOffset}+${swingOffset})) × (Depth + Height + Depth) — wire gutter` : `(Length + 2×${wgOffset}) × (Depth + Height + Depth) — wire gutter`) :
     is3r ? `Height × (Width + 2×Depth + 2×70)` :
     isSwing ? `Height × (Width + 2×Depth + 2×(${bodyOffset}+${swingOffset}))` : `Height × (Width + 2×Depth + 2×${bodyOffset})`;
   document.getElementById('coverFormulaNote').textContent =
-    isWG ? (isSwing ? `(Width + 2×(${wgOffset}+${swingOffset})) × (Depth + Height + Depth) — same as body` : `(Width + 2×${wgOffset}) × (Depth + Height + Depth) — same as body`) :
+    isWG ? (isSwing ? `(Length + 2×(${wgOffset}+${swingOffset})) × (Height + 2×(${wgOffset}+${swingOffset})) — wire gutter` : `(Length + 2×${wgOffset}) × (Height + 2×${wgOffset}) — wire gutter`) :
     is3r ? `(Width + 2×50) × (Height + 2×50)` :
     isSwing ? `(Width + 2×(${capOffset}+${swingOffset})) × (Height + 2×(${capOffset}+${swingOffset}))` : `(Width + 2×${capOffset}) × (Height + 2×${capOffset})`;
 
@@ -892,8 +963,8 @@ function recalc(){
   const capBot = { name:'Box End — bottom',    w: endW, h: endH, pieces: 1, thk: num('thkEndBot'),
     faceOffsets: { type:'border', offset: endOffset } };
   const cover  = isWG
-    ? { name:'Cover', w: wgFaceW, h: wgFaceH, pieces: 1, thk: num('thkCover'),
-        faceOffsets: wgFaceOffsets }
+    ? { name:'Cover', w: W + 2*wgSideOffset, h: H + 2*wgSideOffset, pieces: 1, thk: num('thkCover'),
+        faceOffsets: { type:'border', offset: wgSideOffset } }
     : { name:'Cover',               w: W + 2*coverOffsetEff, h: H + 2*coverOffsetEff, pieces: 1, thk: num('thkCover'),
     faceOffsets: { type:'border', offset: coverOffsetEff } };
   // NEMA 3R only — mounting pan, same size as the cover for now. Flat plate,
@@ -972,6 +1043,7 @@ function recalc(){
   });
   const groupKeys = Object.keys(groups).sort((a,b)=> parseFloat(a)-parseFloat(b));
   lastCombinedQuarters = {};
+  lastOrderQuarters = {};
 
   const container = document.getElementById('groupsContainer');
   container.innerHTML = '';
@@ -988,6 +1060,9 @@ function recalc(){
     const svgId = 'sheetSvg_' + gi;
     const combinedPack = packMinimizeQuarters(usableW, usableH, partGapX, partGapY, g.parts);
     lastCombinedQuarters[key] = combinedPack.quartersUsed;
+    // Exact nested count for the whole order qty (never below the area-based minimum).
+    const orderNested = Math.max(gRoundQuarters, packOrderQuarters(usableW, usableH, partGapX, partGapY, g.parts, qty));
+    lastOrderQuarters[key] = orderNested;
 
     const block = document.createElement('div');
     block.className = 'group-block';
@@ -1004,10 +1079,12 @@ function recalc(){
         <div class="stamp"><div class="label">Exact quarter-sheets</div><div class="value">${fmt(gExactQuarters,2)}</div></div>
         <div class="stamp"><div class="label">% of usable sheet used</div><div class="value">${fmt(gPctUsed,2)}%</div></div>
         <div class="stamp hero"><div class="label">Order — quarter-sheets (rounded up)</div><div class="value">${gRoundQuarters}</div></div>
+        <div class="stamp hero"><div class="label">Order — quarter-sheets, nested (${qty} pcs, used for per-box price)</div><div class="value">${orderNested}</div></div>
         <div class="stamp hero"><div class="label">Order — full sheets (rounded up)</div><div class="value">${gRoundSheets}</div></div>
         <div class="stamp hero"><div class="label">Price — this thickness</div><div class="value" id="groupPrice_${key}">₱0.00</div></div>
         <div class="stamp hero"><div class="label">Quarter-sheets used (combined nest)</div><div class="value" id="groupSheetsCombined_${key}">0 / 4</div></div>
         <div class="stamp hero"><div class="label">Price — this thickness (combined nest)</div><div class="value" id="groupPriceCombined_${key}">₱0.00</div></div>
+        <div class="stamp hero"><div class="label">Price per box — order quarter-sheets (${qty} pcs)</div><div class="value" id="groupPriceBulk_${key}">₱0.00</div></div>
       </div>
       <div style="margin-top:16px;">
         <div class="diagram-wrap">
